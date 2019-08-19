@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <h2>Grocery List App</h2>
+        <div>
+            <p>Create a new Grocery List</p>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <p>Name: {{ form.name }}</p>
+                <p>Buyer: {{ form.buyer }}</p>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+        <div>
+        <p>Your Grocery Lists</p>
+        {% for list in glists %}
+            <p>
+                <a href="/glist_viewer/{{ list.id }}">{{ list.name }}</a> - {{ list.date }} 
+                <a href="/glist_viewer/{{ list.id }}">Delete</a>
+            </p>
+        {% endfor %}
+        </div>
+    </body>
+    <script type="text/javascript">
+
+    </script>
+</html>
