@@ -17,6 +17,8 @@ urlpatterns = [
     path('glist/<int:glist_id>/<int:item_id>/<int:person_id>/add', views.AddPersonToItem, name="addpersontoitem"),
     path('glist/<int:glist_id>/<int:item_id>/<int:person_id>/rem', views.RemPersonFromItem, name="rempersonfromitem"),
 
-    path('glist/<int:glist_id>/calculate', views.CalculateRequest, name="calculate")
+    path('glist/<int:glist_id>/calculate', views.CalculateRequest, name="calculate"),
+
+    path('users', views.users, name='users')
     
 ]

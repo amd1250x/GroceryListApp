@@ -1,12 +1,10 @@
 <html>
     <head>
-        {% load static %}
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <link rel="stylesheet" href="{% static 'hotfix.css' %}" type="text/css" />
+        {% include "header.html" %}
     </head>
     <body>
+        {% include "navbar.html" %}
+        <br>
         <div class="container">
             <div class="row">
                 <h2>Detailed View - {{ glist.name }}</h2>
@@ -33,7 +31,7 @@
                     <form id="personForm" name="personForm" onsubmit="AddPerson(); return false;">
                         <div class="form-group">
                             <label for="name">Name</label>
-                            <input id="name" class="form-control" name="name">
+                            <select id="name-select" class="form-control" name="name"></select>
                         </div>
                         <input class="btn btn-primary" type="submit" name="Submit" value="Add Person">
                     </form>
@@ -46,15 +44,11 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Cost</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for person in person_list %}
-                            <tr>
-                                <td>{{ person.name }}</td>
-                                <td id="cost-{{ person.id }}" class="cost">${{ person.cost|floatformat:2 }}</td>
-                            </tr>
-                            {% endfor %}
+                        <tbody id="personData">
+                            
                         </tbody>
                     </table>
                 </div>
@@ -73,11 +67,11 @@
                             <th>Quantity</th>
                             <th>Price</th>
                             {% for person in person_list %}
-                                <th>{{ person.name }}</th>
+                                <th>{{ person.user.username }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="itemBody">
                             {% for item in item_list %}
                             <tr>
                             <td>
@@ -93,11 +87,11 @@
                             {% for person in person_list %}
                                 {% if person in item.people.all %}
                                 <td>
-                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.name }}" checked>
+                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.user.username }}" checked>
                                 </td>
                                 {% else %}
                                 <td class="checkbox">
-                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.name }}">
+                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.user.username }}">
                                     
                                 </td>    
                                 {% endif %}
@@ -128,6 +122,11 @@
         }
 
         $(document).ready(function(){
+            UpdatePeople();
+            UpdateCosts();
+            PopulatePeople();
+            UpdateItems();
+            $('#name-select').select2();
             $('input.personToItem').on('change', function() {
                 if($(this).prop("checked") == true){
                     var personID = $(this).attr("data-person");
@@ -204,18 +203,42 @@
         }
 
         function AddPerson(){
-            formData = $("#personForm").serializeArray();
+            //formData = $("#personForm").serializeArray();
+            var selected_user = $("#name-select option:selected").val();
+            console.log(selected_user);
+
             $.ajax({
                 type: "POST",
                 url: "/glist/{{ glist.id }}/persons",
                 data: {
                     csrfmiddlewaretoken: getCookie('csrftoken'),
-                    name: formData[0].value
+                    user: selected_user
                 },
                 dataType: "json",
                 success: function(data){
                     console.log(data)
-                    location.reload()
+                    UpdatePeople()
+                },
+                error: function(e){
+                    console.log(e)
+                }
+            })
+        }
+
+        function DeletePerson(id){
+            $.ajax({
+                type: "DELETE",
+                url: "/glist/{{ glist.id }}/person/" + id,
+                headers:{
+                    "X-CSRFToken": '{{ csrf_token }}'
+                },
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken')
+                },
+                dataType: "json",
+                success: function(data){
+                    console.log(data)
+                    UpdatePeople()
                 },
                 error: function(e){
                     console.log(e)
@@ -237,14 +260,73 @@
                 success: function(data){
                     if (data['error']) {
                         console.log(data['error'])
+                        UpdatePeople()
                     } else {
-                        for(var key in data){
-                            $("#cost-"+key).html("$" + data[key].toFixed(2));
-                        }
+                        UpdatePeople()
                     }
                      
                 }
             })
         }
+
+        function UpdatePeople(){
+            $.ajax({
+                type: "GET",
+                url: "/glist/{{ glist.id }}/persons",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                },
+                dataType: "json",
+                success: function(data){
+                    var table_data = ""
+                    $.each(data, function(k, v){
+                        table_data += "<tr>"
+                        table_data += "<td>" + v.name + "</td>"
+                        table_data += "<td>$" + (v.cost).toFixed(2) + "</td>"
+                        table_data += "<td><button onclick='DeletePerson(" + k + ")' class='btn btn-danger'>Delete</button></td>" 
+                        table_data += "</tr>"
+                    })
+                    $("#personData").html(table_data);
+                },
+                error: function(e) {
+                    console.log(e)
+                }
+            })
+        }
+
+        function PopulatePeople(){
+            $.ajax({
+                type: "GET",
+                url: "/users",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken')
+                },
+                dataType: "json",
+                success: function(data) {
+                    var search_data = ""
+                    $.each(data, function(k, v) {
+                        search_data += "<option value=" + k + ">"
+                        search_data += v.name
+                        search_data += "</option>"
+                    })
+                    $("#name-select").html(search_data)                
+                }
+            })
+        }
+
+        function UpdateItems(){
+            $.ajax({
+                type: "GET",
+                url: "/glist/{{ glist.id }}/items",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken')
+                },
+                dataType: "json",
+                success: function(data) {
+                    console.log(data)
+                }
+            })
+        }
+
     </script>
 </html>

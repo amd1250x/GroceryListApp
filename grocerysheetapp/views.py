@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -12,7 +13,8 @@ def IndexView(request):
     if request.method == "POST":
         form = GroceryListForm(request.POST)
         if form.is_valid():
-            glist = GroceryList(name=form.cleaned_data["name"],
+            glist = GroceryList(user=request.user,
+                                name=form.cleaned_data["name"],
                                 buyer=form.cleaned_data["buyer"], 
                                 date=datetime.date.today())
             glist.save()
@@ -30,24 +32,31 @@ def IndexView(request):
         'glists':GroceryList.objects.all()
     })
 
+@login_required
 def GroceryListDetailView(request, glist_id):
+
     glist = GroceryList.objects.get(id=glist_id)
     item_list = Item.objects.filter(glist=glist)
     person_list = Person.objects.filter(glist=glist)
     
-    return render(request, "glist.html", {
-        'glist':glist,
-        'item_list':item_list,
-        'person_list':person_list
-    })
+    if request.user == glist.user:
+        return render(request, "glist.html", {
+            'glist':glist,
+            'item_list':item_list,
+            'person_list':person_list
+        })
+    else:
+        return IndexView(request)
 
+@login_required
 def glists(request):
     if request.method == "POST":
-        glist = GroceryList(name=request.body['name'],
-                            buyer=request.body["buyer"], 
+        glist = GroceryList(user=request.user,
+                            name=request.POST['name'],
+                            buyer=request.POST["buyer"], 
                             date=datetime.date.today())
         glist.save()
-        return JsonResponse()
+        return JsonResponse({"success":"Successfully added List"})
     elif request.method == "GET":
         glists = GroceryList.objects.all()
         response = {}
@@ -60,6 +69,7 @@ def glists(request):
     else:
         return JsonResponse({"error":"Invalid Request Method"})
 
+@login_required
 def glist(request, glist_id):
     if request.method == "PUT":
         pass
@@ -73,7 +83,8 @@ def glist(request, glist_id):
         pass
     else:
         return JsonResponse({"error": "Invalid Request Method"})
-   
+
+@login_required
 def items(request, glist_id):
     if request.method == "POST":
         item = Item(name=request.POST['name'], 
@@ -94,6 +105,7 @@ def items(request, glist_id):
     else:
         return JsonResponse({"error":"Invalid Request Method"})
 
+@login_required
 def item(request, glist_id, item_id):
     if request.method == "PUT":
         pass
@@ -108,22 +120,25 @@ def item(request, glist_id, item_id):
     else:
         return JsonResponse({"error": "Invalid Request Method"})
 
+@login_required
 def persons(request, glist_id):
     if request.method == "POST":
-        person = Person(name=request.POST['name'],
+        person = Person(user=User.objects.get(id=request.POST['user']),
                         glist=GroceryList.objects.get(id=glist_id))
         person.save()
         return JsonResponse({"success":"Successfully added person to list"})
     elif request.method == "GET":
-        persons = Person.objects.all()
+        persons = Person.objects.filter(glist=GroceryList.objects.get(id=glist_id))
         response = {}
         for p in persons:
-            response[p.id]['name'] = p.name
-            resposne[p.id]['glist'] = p.glist.id
+            response[p.id] = {}
+            response[p.id]['name'] = p.user.username
+            response[p.id]['cost'] = p.cost
         return JsonResponse(response)
     else:
         return JsonResponse({"error":"Invalid Request Method"})
 
+@login_required
 def person(request, glist_id, person_id):
     if request.method == "PUT":
         pass
@@ -138,6 +153,7 @@ def person(request, glist_id, person_id):
     else:
         return JsonResponse({"error": "Invalid Request Method"})
 
+@login_required
 def AddPersonToItem(request, glist_id, item_id, person_id):
     item = Item.objects.get(id=item_id)
     glist = GroceryList.objects.get(id=glist_id)
@@ -150,6 +166,7 @@ def AddPersonToItem(request, glist_id, item_id, person_id):
     else:
         return redirect("/glist/" + str(glist_id))
 
+@login_required
 def RemPersonFromItem(request, glist_id, item_id, person_id):
     item = Item.objects.get(id=item_id)
     glist = GroceryList.objects.get(id=glist_id)
@@ -162,6 +179,7 @@ def RemPersonFromItem(request, glist_id, item_id, person_id):
     else:
         return redirect("/glist/" + str(glist_id))
 
+@login_required
 def CalculateRequest(request, glist_id):
     glist = GroceryList.objects.get(id=glist_id)
     item_list = Item.objects.filter(glist=glist)
@@ -188,5 +206,17 @@ def CalculateRequest(request, glist_id):
 
     return JsonResponse(response)
 
-
+@login_required
+def users(request):
+    users = User.objects.all()
     
+    if request.method == "POST":
+        pass
+    elif request.method == "GET":
+        response = {}
+        for u in users:
+            response[u.id] = {}
+            response[u.id]["name"] = u.username
+        return JsonResponse(response)
+    else:
+        return JsonResponse({"error": "Invalid Request Method"})

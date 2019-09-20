@@ -1,29 +1,136 @@
 <html>
     <head>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        {% include "header.html" %}
     </head>
     <body>
-        <h2>Grocery List App</h2>
-        <div>
-            <p>Create a new Grocery List</p>
-            <form method="post" novalidate>
-                {% csrf_token %}
-                <p>Name: {{ form.name }}</p>
-                <p>Buyer: {{ form.buyer }}</p>
-                <button type="submit">Submit</button>
-            </form>
-        </div>
-        <div>
-        <p>Your Grocery Lists</p>
-        {% for list in glists %}
-            <p>
-                <a href="/glist_viewer/{{ list.id }}">{{ list.name }}</a> - {{ list.date }} 
-                <a href="/glist_viewer/{{ list.id }}">Delete</a>
-            </p>
-        {% endfor %}
+        {% include "navbar.html" %}
+        <div class="container">
+            <br>
+            <div class="row">
+                <h2>Grocery List App</h2>
+            </div>
+            <div class="row">
+                <form id="GroceryForm" name="GroceryForm" onsubmit="AddGroceryList(); return false;">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input id="name" class="form-control" name="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="buyer">Buyer</label>
+                        <input id="buyer" class="form-control" name="buyer">
+                    </div>
+                    <input class="btn btn-primary" type="submit" name="Submit" value="Add Grocery List">
+                </form>
+            </div>
+            <div class="row">
+                <h2>Your Grocery Lists</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Buyer</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groceryListData">
+                        
+                    </tbody>
+                </table>
+            </div>
         </div>
     </body>
     <script type="text/javascript">
+
+        $(document).ready(function(){
+             UpdateLists();
+        });
+
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue; 
+        }
+
+        function AddGroceryList(){
+            var formData = $("#GroceryForm").serializeArray();
+            $.ajax({
+               type: "POST",
+               url: "/glists",
+               data: {
+                   csrfmiddlewaretoken: getCookie("csrftoken"),
+                   name: formData[0].value,
+                   buyer: formData[1].value
+               },
+               dataType: "json",
+               success: function(data){
+                   console.log(data)
+                   UpdateLists()
+               },
+               error: function(e){
+                   console.log(e);
+               }
+            });
+        }
+
+        function UpdateLists(){
+            $.ajax({
+                type: "GET",
+                url: "/glists",
+                data: {
+                    csrfmiddlewaretoken: getCookie("csrftoken")
+                },
+                dataType: "json",
+                success: function(data){
+                    console.log(data)
+                    var table_data = "";
+                    
+                    $.each(data, function(k, v){
+                        table_data += "<tr>"
+                        table_data += "<td><a href='/glist_viewer/" + k + "'>" + v.name + "</a></td>"
+                        table_data += "<td>" + v.buyer + "</td>"
+                        table_data += "<td>" + v.date + "</td>" 
+                        table_data += "<td><button onclick='DeleteGroceryList(" + k + ")' class='btn btn-danger'>Delete</button></td>" 
+                        table_data += "</tr>"
+                    });
+                    $("#groceryListData").html(table_data);
+                },
+                error: function(e){
+                    console.log(e)
+                }
+            });
+        }
+
+        function DeleteGroceryList(id){
+            $.ajax({
+               type: "DELETE",
+               url: "/glist/" + id,
+               headers:{
+                    "X-CSRFToken": '{{ csrf_token }}'
+                },
+               data: {
+                   csrfmiddlewaretoken: '{{ csrf_token }}'
+               },
+               dataType: "json",
+               success: function(data){
+                   console.log(data)
+                   UpdateLists()
+               },
+               error: function(e){
+                   console.log(e);
+               }
+            });
+        }
 
     </script>
 </html>
