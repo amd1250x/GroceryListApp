@@ -92,7 +92,7 @@
         });
         
         function UpdateAll() {
-            UpdateCosts()
+            UpdatePeople()
             UpdateItems()
         }
 
@@ -109,7 +109,8 @@
                         success: function(data){
                             console.log("Added person to item")
                             $("#itemTable :input").prop("disabled", true);
-                            UpdateCosts()
+                            //UpdateCosts()
+                            UpdatePeople()
                         }
                     });
                 } else {
@@ -123,7 +124,8 @@
                         success: function(data){
                             console.log("removed person from item")
                             $("#itemTable :input").prop("disabled", true);
-                            UpdateCosts()
+                            //UpdateCosts()
+                            UpdatePeople()
                         }
                     });
                 }
@@ -233,6 +235,7 @@
                         console.log(data['error'])
                     } else {
                         console.log("costs updated")
+                        $("#itemTable :input").prop("disabled", false);
                         UpdatePeople()
                     }
                      
@@ -260,8 +263,9 @@
                         table_data += "</tr>"
                     })
                     $("#personData").html(table_data);
-                    console.log("people updated")
                     $("#itemTable :input").prop("disabled", false);
+                    console.log("people updated")
+                    
                 },
                 error: function(e) {
                     console.log(e)

@@ -9,6 +9,22 @@ from .models import *
 import datetime
 # Create your views here.
 
+
+def CalculateRemoval(item):
+    for p in item.people.all():
+        old_cost_per_person = (item.price * item.quantity) / (len(item.people.all()) or 1)
+        print("Old cost: ", old_cost_per_person)
+        p.cost -= float(old_cost_per_person)
+        p.save()
+
+def CalculateAdditional(item):
+    for p in item.people.all():
+        new_cost_per_person = (item.price * item.quantity) / (len(item.people.all()) or 1)
+        print("New cost: ", new_cost_per_person)
+        p.cost += float(new_cost_per_person)
+        p.save()
+
+
 def IndexView(request):
     if request.method == "POST":
         form = GroceryListForm(request.POST)
@@ -146,8 +162,21 @@ def person(request, glist_id, person_id):
     if request.method == "PUT":
         pass
     elif request.method == "DELETE":
-        person = Person.objects.get(id=person_id)
-        person.delete()
+        items = Item.objects.all()
+        first_pass = False
+        for i in items:
+            old_cost = (i.price * i.quantity) / (len(i.people.all()) or 1)
+            for p in i.people.all():
+                p.cost -= float(old_cost)
+                p.save()
+            if not first_pass:
+                person = Person.objects.get(id=person_id)
+                person.delete()
+                first_pass = True
+            new_cost = (i.price * i.quantity) / (len(i.people.all()) or 1)
+            for p in i.people.all():
+                p.cost += float(new_cost)
+                p.save()
         return JsonResponse({"success":"Successfully deleted Person"})
     elif request.method == "PATCH":
         pass
@@ -163,8 +192,10 @@ def AddPersonToItem(request, glist_id, item_id, person_id):
     person = Person.objects.get(id=person_id)
 
     if request.method == "POST":
+        CalculateRemoval(item)
         item.people.add(person)
         item.save()
+        CalculateAdditional(item)
         return JsonResponse({"sucesss":True})
     else:
         return redirect("/glist/" + str(glist_id))
@@ -176,8 +207,10 @@ def RemPersonFromItem(request, glist_id, item_id, person_id):
     person = Person.objects.get(id=person_id)
 
     if request.method == "POST":
+        CalculateRemoval(item)
         item.people.remove(person)
         item.save()
+        CalculateAdditional(item)
         return JsonResponse({"sucesss":True})
     else:
         return redirect("/glist/" + str(glist_id))
