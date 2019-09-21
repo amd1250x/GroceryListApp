@@ -101,6 +101,9 @@ def items(request, glist_id):
             response[i.id]['name'] = i.name
             response[i.id]['quantity'] = i.quantity
             response[i.id]['price'] = i.price
+            response[i.id]['people'] = {}
+            for p in i.people.all():
+                response[i.id]['people'][p.id] = [p.user.username]
         return JsonResponse(response)
     else:
         return JsonResponse({"error":"Invalid Request Method"})
@@ -179,26 +182,33 @@ def RemPersonFromItem(request, glist_id, item_id, person_id):
     else:
         return redirect("/glist/" + str(glist_id))
 
+
 @login_required
 def CalculateRequest(request, glist_id):
     glist = GroceryList.objects.get(id=glist_id)
     item_list = Item.objects.filter(glist=glist)
     person_list = Person.objects.filter(glist=glist)
 
+
     for p in person_list:
         p.cost = 0
         p.save()
+
+    
 
     for i in item_list:
         cost = i.quantity * i.price
         people = len(i.people.all())
         if people == 0:
-            return JsonResponse({'error':"Item doesn't have user"})
+            # Prevents div by 0 issue
+            people = 1
+            #return JsonResponse({'error':"Item doesn't have user"})
         cost_per_person = cost / people
+
         for p in person_list:
-            if p in i.people.all():
+            if i.people.filter(id=p.id):
                 p.cost += float(cost_per_person)
-            p.save()
+                p.save()
 
     response = {}
     for p in person_list:

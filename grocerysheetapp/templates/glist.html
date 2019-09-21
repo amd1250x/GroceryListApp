@@ -60,45 +60,9 @@
             </div>
             <div class="row">
                 <table id="itemTable" class="table">
-                    <thead>
-                        <tr>
-                            <th>Delete</th>
-                            <th>Name</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            {% for person in person_list %}
-                                <th>{{ person.user.username }}</th>
-                            {% endfor %}
-                        </tr>
+                    <thead id="itemHead">
                     </thead>
                     <tbody id="itemBody">
-                            {% for item in item_list %}
-                            <tr>
-                            <td>
-                                <form id="deleteItem{{ item.id }}" name="deleteItem" onsubmit="DeleteItem('{{ item.id }}'); return false">
-                                    <input type="hidden" name="item" value="{{ item.id }}">
-                                    <input class="btn btn-danger" type="submit" name="Submit" value="Delete">
-                                </form>
-                            </td>
-                            <td>{{ item.name }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ item.price }}</td>
-                            <form action="">
-                            {% for person in person_list %}
-                                {% if person in item.people.all %}
-                                <td>
-                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.user.username }}" checked>
-                                </td>
-                                {% else %}
-                                <td class="checkbox">
-                                    <input class="personToItem" data-person="{{ person.id }}" data-item="{{ item.id }}" data-glist="{{ glist.id }}" type="checkbox" name="{{ person.user.username }}">
-                                    
-                                </td>    
-                                {% endif %}
-                            {% endfor %}
-                            </form>
-                        </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -122,38 +86,48 @@
         }
 
         $(document).ready(function(){
-            UpdatePeople();
-            UpdateCosts();
-            PopulatePeople();
-            UpdateItems();
+            PopulatePeopleSelector();
+            UpdateAll();
             $('#name-select').select2();
-            $('input.personToItem').on('change', function() {
-                if($(this).prop("checked") == true){
-                    var personID = $(this).attr("data-person");
-                    var itemID = $(this).attr("data-item");
+        });
+        
+        function UpdateAll() {
+            UpdateCosts()
+            UpdateItems()
+        }
+
+        $(function () {
+            updatePersonToItem = function(elm) {
+                if($(elm).prop("checked") == true){
+                    var personID = $(elm).attr("data-person");
+                    var itemID = $(elm).attr("data-item");
                     $.ajax({
                         type: "POST",
                         url: "/glist/{{ glist.id }}/" + itemID + "/" + personID + "/add",
                         data: {csrfmiddlewaretoken: getCookie("csrftoken")},
                         dataType: "json",
                         success: function(data){
+                            console.log("Added person to item")
+                            $("#itemTable :input").prop("disabled", true);
                             UpdateCosts()
                         }
                     });
                 } else {
-                    var personID = $(this).attr("data-person");
-                    var itemID = $(this).attr("data-item");
+                    var personID = $(elm).attr("data-person");
+                    var itemID = $(elm).attr("data-item");
                     $.ajax({
                         type: "POST",
                         url: "/glist/{{ glist.id }}/" + itemID + "/" + personID + "/rem",
                         data: {csrfmiddlewaretoken: getCookie("csrftoken")},
                         dataType: "json",
                         success: function(data){
+                            console.log("removed person from item")
+                            $("#itemTable :input").prop("disabled", true);
                             UpdateCosts()
                         }
                     });
                 }
-            });
+            }
         });
 
         function AddItem(){
@@ -169,9 +143,8 @@
                },
                dataType: "json",
                success: function(data){
-                   console.log(data)
-                   UpdateCosts()
-                   location.reload()
+                   console.log("added item")
+                   UpdateAll()
                },
                error: function(e){
                    console.log(e);
@@ -180,10 +153,9 @@
         }
 
         function DeleteItem(item_id){
-            var formData = $("#deleteItem" + item_id).serializeArray();
             $.ajax({
                type: "DELETE",
-               url: "/glist/{{ glist.id }}/item/" + formData[0].value,
+               url: "/glist/{{ glist.id }}/item/" + item_id,
                headers:{
                     "X-CSRFToken": '{{ csrf_token }}'
                 },
@@ -192,9 +164,8 @@
                },
                dataType: "json",
                success: function(data){
-                   console.log(data)
-                   UpdateCosts()
-                   location.reload()
+                   console.log("removed item")
+                   UpdateAll()
                },
                error: function(e){
                    console.log(e);
@@ -216,8 +187,8 @@
                 },
                 dataType: "json",
                 success: function(data){
-                    console.log(data)
-                    UpdatePeople()
+                    console.log("added person")
+                    UpdateAll()
                 },
                 error: function(e){
                     console.log(e)
@@ -237,8 +208,8 @@
                 },
                 dataType: "json",
                 success: function(data){
-                    console.log(data)
-                    UpdatePeople()
+                    console.log("removed person")
+                    UpdateAll()
                 },
                 error: function(e){
                     console.log(e)
@@ -260,14 +231,16 @@
                 success: function(data){
                     if (data['error']) {
                         console.log(data['error'])
-                        UpdatePeople()
                     } else {
+                        console.log("costs updated")
                         UpdatePeople()
                     }
                      
                 }
             })
         }
+
+
 
         function UpdatePeople(){
             $.ajax({
@@ -287,6 +260,8 @@
                         table_data += "</tr>"
                     })
                     $("#personData").html(table_data);
+                    console.log("people updated")
+                    $("#itemTable :input").prop("disabled", false);
                 },
                 error: function(e) {
                     console.log(e)
@@ -294,7 +269,7 @@
             })
         }
 
-        function PopulatePeople(){
+        function PopulatePeopleSelector(){
             $.ajax({
                 type: "GET",
                 url: "/users",
@@ -323,7 +298,50 @@
                 },
                 dataType: "json",
                 success: function(data) {
-                    console.log(data)
+                    var item_data = ""
+                    var item_head = ""
+                    $.ajax({
+                        type: "GET",
+                        url: "/glist/{{ glist.id }}/persons",
+                        data: {
+                            csrfmiddlewaretoken: getCookie('csrftoken')
+                        }, 
+                        dataType: "json",
+                        success: function(person_list) {
+                            item_head += "<tr>"
+                            item_head += "<th>Delete</th>"
+                            item_head += "<th>Name</th>"
+                            item_head += "<th>Quantity</th>"
+                            item_head += "<th>Price</th>"
+
+                            head_flag = false
+                            $.each(data, function(k, v) {
+                                item_data += "<tr>"
+                                item_data += "<td><button onclick='DeleteItem(" + k + ")' class='btn btn-danger'>Delete</button></td>"
+                                item_data += "<td>" + v.name + "</td>"
+                                item_data += "<td>" + v.quantity + "</td>"
+                                item_data += "<td>" + v.price + "</td>"
+
+                                $.each(person_list, function(person_key, person_value) {
+                                    if (v.people.hasOwnProperty(person_key)) {
+                                        item_data += "<td><input onclick='updatePersonToItem(this)' class='personToItem' data-person='" + person_key + "' data-item='" + k + "' data-glist='{{ glist.id }}' type='checkbox' name='" + person_value.name + "' checked></td>"
+                                    } else {
+                                        item_data += "<td><input onclick='updatePersonToItem(this)' class='personToItem' data-person='" + person_key + "' data-item='" + k + "' data-glist='{{ glist.id }}' type='checkbox' name='" + person_value.name + "'></td>"
+                                    }
+                                    if (!head_flag) {
+                                        item_head += "<th>" + person_value.name + "</th>"
+                                    }
+                                })
+                                head_flag = true
+                                item_data += "</tr>"
+                                
+                            })
+                            item_head += "</tr>"
+                            $("#itemHead").html(item_head)
+                            $("#itemBody").html(item_data)
+                        }
+                    })
+                    console.log("items updated")
                 }
             })
         }
