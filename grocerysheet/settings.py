@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -122,7 +124,9 @@ STATIC_ROOT = ''
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = ( os.path.join('static'), )
+#STATICFILES_DIRS = ( os.path.join('static_compiled'), )
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'grocerysheetapp/static_compiled' ),)
+print(STATICFILES_DIRS)
 
 LOGIN_REDIRECT_URL = '/'
 

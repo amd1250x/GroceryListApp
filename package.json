@@ -1,0 +1,28 @@
+{
+  "name": "grocerylistapp",
+  "version": "1.0.0",
+  "description": "Frontend Packages for GLA",
+  "main": "index.js",
+  "dependencies": {
+    "bootstrap": "^4.5.2",
+    "bootstrap-less": "^3.3.8",
+    "less": "^3.12.2",
+    "vue": "^2.6.12"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "compile:less": "lessc grocerysheetapp/static_src/bootstrap.less grocerysheetapp/static_compiled/styles.css",
+    "django:dev": "python manage.py runserver",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amd1250x/GroceryListApp.git"
+  },
+  "author": "A D'Sa, L Werner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/amd1250x/GroceryListApp/issues"
+  },
+  "homepage": "https://github.com/amd1250x/GroceryListApp#readme"
+}

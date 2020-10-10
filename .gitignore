@@ -1,2 +1,6 @@
 *.sqlite3
 env/*
+node_modules
+*/static_compiled/*
+package-lock.json
+*/__pycache__/*

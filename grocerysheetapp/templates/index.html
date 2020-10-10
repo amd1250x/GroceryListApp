@@ -4,7 +4,13 @@
     </head>
     <body>
         {% include "navbar.html" %}
-        <div class="container">
+
+        <div id="app">
+            <p>[[ title ]]</p>
+        </div>
+
+
+        <!--div class="container">
             <br>
             <div class="row">
                 <h2>Grocery List App</h2>
@@ -38,10 +44,18 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div-->
     </body>
-    <script type="text/javascript">
+    <script>
+        new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            title: 'Welcome to My Journal'
+        }
+        })
 
+    /*
         $(document).ready(function(){
              UpdateLists();
         });
@@ -131,6 +145,6 @@
                }
             });
         }
-
+    */
     </script>
 </html>
